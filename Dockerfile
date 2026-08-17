@@ -59,7 +59,7 @@ RUN ARTIFACTS_DIR=/opt/nutanix-mcp/artifacts LOG_DIR=/tmp/build-logs \
  && ls /opt/nutanix-mcp/artifacts/*.yaml >/dev/null
 
 # ---- Stage 2: build the Node bridge ----
-FROM node:22-bookworm-slim AS bridge-build
+FROM node:26-bookworm-slim AS bridge-build
 WORKDIR /app
 COPY package.json package-lock.json* tsconfig.json ./
 RUN npm ci --no-audit --no-fund
