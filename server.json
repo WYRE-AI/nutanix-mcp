@@ -1,0 +1,44 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.wyre-technology/nutanix-mcp",
+  "title": "Nutanix Prism Central",
+  "description": "Multitenant Streamable HTTP bridge over Nutanix's official v4 API MCP server (Prism Central).",
+  "repository": {
+    "url": "https://github.com/wyre-technology/nutanix-mcp",
+    "source": "github"
+  },
+  "version": "0.0.0",
+  "websiteUrl": "https://github.com/wyre-technology/nutanix-mcp",
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/wyre-technology/nutanix-mcp:0.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "PORT",
+          "description": "Public listen port for the bridge (POST /mcp, GET /health)",
+          "isRequired": false,
+          "default": "8080",
+          "format": "string"
+        },
+        {
+          "name": "IDLE_EVICT_MS",
+          "description": "Idle tenant timeout before an upstream child is evicted (ms)",
+          "isRequired": false,
+          "default": "3600000",
+          "format": "string"
+        },
+        {
+          "name": "SPAWN_TIMEOUT_MS",
+          "description": "How long to wait for a spawned child to answer the MCP handshake (ms)",
+          "isRequired": false,
+          "default": "60000",
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
