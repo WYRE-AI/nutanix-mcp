@@ -1,4 +1,4 @@
-name: Add to project
+name: Auto-add to project
 
 on:
   issues:
@@ -7,11 +7,6 @@ on:
     types: [opened]
 
 jobs:
-  add-to-project:
-    name: Add issue/PR to org project
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/add-to-project@v1.0.2
-        with:
-          project-url: https://github.com/orgs/wyre-technology/projects/1
-          github-token: ${{ secrets.ADD_TO_PROJECT_TOKEN }}
+  call:
+    uses: wyre-technology/.github/.github/workflows/auto-add-to-project.yml@c3314c1065f78adf905a815ad214c71266913771  # pinned (warden C-4) — bump via PR not in-place edit
+    secrets: inherit
