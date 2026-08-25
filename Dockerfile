@@ -130,9 +130,9 @@ COPY --from=bridge-build /app/node_modules ./node_modules
 COPY --from=bridge-build /app/dist ./dist
 COPY --from=bridge-build /app/package.json ./package.json
 
-LABEL org.opencontainers.image.source="https://github.com/wyre-technology/nutanix-mcp" \
+LABEL org.opencontainers.image.source="https://github.com/WYRE-AI/nutanix-mcp" \
       org.opencontainers.image.licenses="Apache-2.0" \
-      io.modelcontextprotocol.server.name="io.github.wyre-technology/nutanix-mcp"
+      io.modelcontextprotocol.server.name="io.github.WYRE-AI/nutanix-mcp"
 
 EXPOSE 8080
 CMD ["node", "dist/index.js"]

@@ -83,8 +83,8 @@ curl -s localhost:8080/mcp -X POST \
 Or build the image (it bakes everything, including a stdio smoke test that fails the build if `serve-stdio` can't answer `tools/list`):
 
 ```bash
-docker build --platform linux/amd64 -t ghcr.io/wyre-technology/nutanix-mcp:dev .
-docker run --rm -p 8080:8080 ghcr.io/wyre-technology/nutanix-mcp:dev
+docker build --platform linux/amd64 -t ghcr.io/wyre-ai/nutanix-mcp:dev .
+docker run --rm -p 8080:8080 ghcr.io/wyre-ai/nutanix-mcp:dev
 ```
 
 ## Bumping the upstream pin
