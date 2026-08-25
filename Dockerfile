@@ -37,11 +37,17 @@ WORKDIR /opt
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
+# upstream-constraints.txt pins the FULL PyPI resolution for the upstream venv.
+# The upstream pyproject only sets floors (mcp>=1.0.0,<2.0.0, ...), so without
+# constraints every build re-resolves PyPI and an upstream release can break
+# the image with zero changes in this repo (observed 2026-08-25: mcp 1.29.1).
+COPY upstream-constraints.txt /opt/upstream-constraints.txt
 RUN git clone --depth=1 --branch "${NUTANIX_MCP_REF}" \
       https://github.com/nutanix/ntnx-api-mcp-server.git /opt/nutanix-mcp \
  && cd /opt/nutanix-mcp \
  && uv venv .venv --python /usr/local/bin/python3.12 \
- && uv pip install --python /opt/nutanix-mcp/.venv/bin/python .
+ && uv pip install --python /opt/nutanix-mcp/.venv/bin/python \
+      --constraint /opt/upstream-constraints.txt .
 
 # Bake the YAML API-spec artifacts at BUILD time. Without PC credentials,
 # `nutanix-mcp init` runs in latest_release mode against the public
@@ -98,29 +104,72 @@ RUN "${NUTANIX_MCP_BIN}" --help > /dev/null
 # Build-time smoke test 2: prove serve-stdio actually starts and answers an
 # MCP initialize + tools/list from the baked artifacts with FAKE PC creds
 # (tool definitions come from the YAML artifacts, not the live PC — only
-# execute calls need a reachable PC). Asserts the full 24-tool surface:
-# 20 {namespace}_execute + 4 discovery tools.
-RUN printf '%s\n' \
-      '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"build-smoke","version":"0"}}}' \
-      '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
-      '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' > /tmp/smoke-in.jsonl \
- && { cat /tmp/smoke-in.jsonl; sleep 20; } \
-      | env PC_HOST=smoke.invalid PC_USERNAME=smoke PC_PASSWORD=smoke \
-            READ_ONLY_MODE=true LOG_DIR=/tmp/build-logs \
-            "${NUTANIX_MCP_BIN}" serve-stdio > /tmp/smoke-out.jsonl 2>/dev/null \
- && python3 - <<'EOF'
-import json
+# execute calls need a reachable PC). Asserts the full tool surface:
+# one {namespace}_execute per baked artifact + 4 discovery tools.
+#
+# The driver keeps the child's stdin OPEN until the tools/list answer arrives
+# (condition-based, 300s hard deadline) instead of the old `{ cat; sleep 20; }`
+# pipe, whose fixed budget raced the server's YAML-parse startup on slow CI
+# runners. Child stderr is captured and dumped on failure so a red build is
+# diagnosable from the CI log alone.
+RUN python3 - <<'EOF'
+import glob, json, os, signal, subprocess, sys
+
+expected = 4 + len(glob.glob("/opt/nutanix-mcp/artifacts/*.yaml"))
+env = dict(
+    os.environ,
+    PC_HOST="smoke.invalid", PC_USERNAME="smoke", PC_PASSWORD="smoke",
+    READ_ONLY_MODE="true", LOG_DIR="/tmp/build-logs",
+)
+err = open("/tmp/smoke-err.txt", "wb")
+proc = subprocess.Popen(
+    [os.environ["NUTANIX_MCP_BIN"], "serve-stdio"],
+    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=err, env=env,
+)
+def fail(reason):
+    proc.kill()
+    err.close()
+    sys.stderr.write(f"SMOKE FAIL: {reason}\n--- serve-stdio stderr tail ---\n")
+    lines = open("/tmp/smoke-err.txt", "rb").read().decode(errors="replace").splitlines()
+    sys.stderr.write("\n".join(lines[-40:]) + "\n")
+    sys.exit(1)
+
+try:
+    for msg in (
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+            "protocolVersion": "2025-03-26", "capabilities": {},
+            "clientInfo": {"name": "build-smoke", "version": "0"}}},
+        {"jsonrpc": "2.0", "method": "notifications/initialized"},
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+    ):
+        proc.stdin.write((json.dumps(msg) + "\n").encode())
+    proc.stdin.flush()
+except BrokenPipeError:
+    fail(f"serve-stdio died during handshake (rc={proc.wait()})")
+
+signal.signal(signal.SIGALRM, lambda *_: fail("no tools/list answer within 300s"))
+signal.alarm(300)
 tools = None
-for line in open("/tmp/smoke-out.jsonl"):
-    line = line.strip()
+while tools is None:
+    line = proc.stdout.readline()
     if not line:
-        continue
+        fail(f"serve-stdio exited (rc={proc.wait()}) before answering tools/list")
     msg = json.loads(line)
     if msg.get("id") == 2:
+        if "result" not in msg:
+            fail(f"tools/list answered with error: {json.dumps(msg)[:500]}")
         tools = [t["name"] for t in msg["result"]["tools"]]
-assert tools is not None, "serve-stdio never answered tools/list"
-assert len(tools) == 24, f"expected 24 tools, got {len(tools)}: {tools}"
-assert "listOperations" in tools and "vmm_execute" in tools, tools
+signal.alarm(0)
+if len(tools) != expected:
+    fail(f"expected {expected} tools, got {len(tools)}: {tools}")
+if "listOperations" not in tools or "vmm_execute" not in tools:
+    fail(f"discovery/execute tools missing from: {tools}")
+proc.stdin.close()
+proc.terminate()
+try:
+    proc.wait(timeout=30)
+except subprocess.TimeoutExpired:
+    proc.kill()
 print(f"stdio smoke OK: {len(tools)} tools")
 EOF
 
