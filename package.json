@@ -1,5 +1,5 @@
 {
-  "name": "@wyre-technology/nutanix-mcp",
+  "name": "@wyre-ai/nutanix-mcp",
   "version": "0.0.0",
   "description": "Multitenant Streamable HTTP bridge over Nutanix's official v4 API MCP server (stdio)",
   "private": true,
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wyre-technology/nutanix-mcp.git"
+    "url": "git+https://github.com/WYRE-AI/nutanix-mcp.git"
   },
   "author": "WYRE Technology",
   "license": "Apache-2.0",

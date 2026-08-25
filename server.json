@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.wyre-technology/nutanix-mcp",
+  "name": "io.github.WYRE-AI/nutanix-mcp",
   "title": "Nutanix Prism Central",
   "description": "Multitenant Streamable HTTP bridge over Nutanix's official v4 API MCP server (Prism Central).",
   "repository": {
-    "url": "https://github.com/wyre-technology/nutanix-mcp",
+    "url": "https://github.com/WYRE-AI/nutanix-mcp",
     "source": "github"
   },
   "version": "0.0.0",
-  "websiteUrl": "https://github.com/wyre-technology/nutanix-mcp",
+  "websiteUrl": "https://github.com/WYRE-AI/nutanix-mcp",
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/wyre-technology/nutanix-mcp:0.0.0",
+      "identifier": "ghcr.io/wyre-ai/nutanix-mcp:0.0.0",
       "transport": {
         "type": "stdio"
       },
