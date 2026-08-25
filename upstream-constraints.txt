@@ -1,0 +1,44 @@
+# Exact pins for the upstream ntnx-api-mcp-server v0.8 venv (Dockerfile stage 1).
+#
+# The upstream's pyproject uses open floors (mcp>=1.0.0,<2.0.0, httpx>=0.28.0,
+# ...), so every image build re-resolved PyPI and drifted. The v1.0.0 image
+# built green on 2026-08-17; the next builds (2026-08-25) pulled mcp 1.29.1
+# (released 2026-08-24) and the serve-stdio build smoke started failing on CI
+# runners. This file freezes the full resolution that shipped in the
+# known-good v1.0.0 image (python 3.12, linux) so builds are reproducible.
+#
+# To bump: regenerate with
+#   uv venv /tmp/v --python python3.12 && uv pip install --python /tmp/v/bin/python <upstream-checkout>
+#   uv pip freeze --python /tmp/v/bin/python | grep -v '^ntnx-api-mcp-server'
+# then re-run a full docker build (the stdio smoke gates it) and cut a release.
+annotated-types==0.8.0
+anyio==4.14.2
+attrs==26.1.0
+certifi==2026.7.22
+cffi==2.1.1
+click==8.4.2
+cryptography==50.0.0
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+httpx-sse==0.4.3
+idna==3.18
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+mcp==1.29.0
+pycparser==3.0
+pydantic==2.13.4
+pydantic-core==2.46.4
+pydantic-settings==2.15.0
+pyjwt==2.13.0
+python-dotenv==1.2.3
+python-multipart==0.0.32
+pyyaml==6.0.3
+referencing==0.37.0
+rpds-py==2026.6.3
+sse-starlette==3.4.8
+starlette==1.6.0
+tenacity==9.1.4
+typing-extensions==4.16.0
+typing-inspection==0.4.4
+uvicorn==0.52.3
