@@ -37,6 +37,31 @@ updates:
     # Production MAJORS are intentionally NOT grouped → individual PRs, held for
     # human review (never auto-merged).
     ignore:
+      # ip-address (GHSA, affects <=10.3.0) and undici (GHSA cookie-injection /
+      # CRLF injection / response desync, affects <6.28.0) are both unreachable,
+      # not unaddressed. Both are nested inside npm's OWN bundled dependency tree
+      # (@semantic-release/npm -> npm@^11.x (bundled) -> ... -> ip-address@10.2.0
+      # / undici@6.27.0), confirmed via package-lock.json (node_modules/npm/
+      # node_modules/ip-address and node_modules/npm/node_modules/undici). This
+      # repo's OTHER undici instances (@actions/http-client's copy at 6.28.0,
+      # top-level at 7.29.0) are already patched -- only the npm-bundled ones are
+      # vulnerable. Same shape verified via a package.json `overrides` test on
+      # node-ninjaone (ip-address, 2026-08-06) and node-halopsa (undici,
+      # 2026-08-25): the override has ZERO effect on npm's bundled copy. No
+      # amount of top-level dependency management in THIS repo can reach either;
+      # only a new `npm` release bundling patched versions closes this. Without
+      # this ignore, Dependabot's security job retries and fails daily/weekly
+      # trying to patch an unreachable nested copy -- a permanently-red
+      # scheduled job trains everyone to stop looking at it, which could mask an
+      # unrelated, actually-fixable advisory later.
+      # The underlying GHSA alerts stay open/visible on the repo's Security >
+      # Dependabot alerts tab regardless of this ignore -- this only stops the
+      # doomed PR-open attempt, it does not dismiss the vulnerability.
+      # Revisit: periodically confirm whether a newer npm bundles fixed versions
+      # (check node_modules/npm/node_modules/<pkg>'s version after a fresh
+      # install, or just remove this ignore and see if Dependabot succeeds).
+      - dependency-name: "ip-address"
+      - dependency-name: "undici"
       # typescript 7.x breaks this fleet's toolchain: DTS emit (tsup/rollup-plugin-dts
       # TS5101 baseUrl-deprecated-as-error), and typescript-eslint (still <6.1.0 as of
       # 8.66.0, no TS7 support yet). Has broken main 3x on some repos because Dependabot
