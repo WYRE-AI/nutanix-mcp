@@ -12,7 +12,10 @@ import { createMcpHandler, type McpHttpHandler } from "@modelcontextprotocol/ser
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import { makeMcpServerFactory, SERVER_VERSION } from "./bridge.js";
 import { GATEWAY_HEADERS, resolveCredentials } from "./credentials.js";
+import { verifyS2sHeader, S2S_HEADER } from "./s2s-verify.js";
 import type { ChildPool } from "./pool.js";
+
+const S2S_SECRET = process.env.CONDUIT_S2S_SECRET || "";
 
 const CORS_ALLOW_HEADERS = [
   "Content-Type",
@@ -71,6 +74,22 @@ export function createBridgeHttpServer(pool: ChildPool): BridgeHttp {
     }
 
     if (url.pathname === "/mcp") {
+      if (S2S_SECRET && !verifyS2sHeader(req.headers[S2S_HEADER] as string | undefined, S2S_SECRET)) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            error: {
+              code: -32001,
+              message: "Unauthorized: missing or invalid X-Gateway-S2S header (this endpoint only accepts requests signed by the gateway).",
+              data: { required: [S2S_HEADER] },
+            },
+            id: null,
+          }),
+        );
+        return;
+      }
+
       const { error } = resolveCredentials((name) => {
         const value = req.headers[name];
         return Array.isArray(value) ? value[0] : value;
