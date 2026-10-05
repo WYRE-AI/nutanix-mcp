@@ -19,8 +19,8 @@
   "author": "WYRE Technology",
   "license": "Apache-2.0",
   "dependencies": {
-    "@modelcontextprotocol/client": "^2.0.0-beta.5",
-    "@modelcontextprotocol/node": "^2.0.0-beta.5",
+    "@modelcontextprotocol/client": "^2.1.0",
+    "@modelcontextprotocol/node": "^2.1.0",
     "@modelcontextprotocol/server": "^2.0.0-beta.5"
   },
   "devDependencies": {
