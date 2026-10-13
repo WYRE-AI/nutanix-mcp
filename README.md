@@ -69,6 +69,8 @@ Copy [`.env.example`](.env.example). Leave `CONDUIT_S2S_SECRET` empty in that fi
 
 With `CONDUIT_S2S_SECRET` set, every `/mcp` request must include `X-Gateway-S2S`. The check is `verifyS2sHeader` in [`src/s2s-verify.ts`](src/s2s-verify.ts): the header value is `t=<unix seconds>,v1=<hex>`, where the hex is HMAC-SHA256 of the literal string `t=<unix seconds>` keyed with `CONDUIT_S2S_SECRET` (64 lowercase hex characters). The timestamp must be within 300 seconds of the server clock. A missing or invalid header is HTTP 401, before Prism Central credentials are read.
 
+Sign with the same `CONDUIT_S2S_SECRET` the server process is using. [Local development](#local-development) exports that value in the shell; reuse it for this request instead of generating another one.
+
 ```bash
 TS=$(date +%s)
 SIG=$(printf 't=%s' "$TS" | openssl dgst -sha256 -hmac "$CONDUIT_S2S_SECRET" -hex | awk '{print $NF}')
@@ -96,12 +98,16 @@ cd -
 # 2. Build and run the bridge against it
 npm ci && npm run build && npm test
 # HTTP refuses to start until CONDUIT_S2S_SECRET is a real value.
-CONDUIT_S2S_SECRET="$(openssl rand -hex 32)" \
-  NUTANIX_MCP_DIR=../ntnx-api-mcp-server node dist/index.js
+# Export it so this shell keeps the same secret for the server, the
+# signing request above, and the Docker commands below.
+export CONDUIT_S2S_SECRET="$(openssl rand -hex 32)"
+NUTANIX_MCP_DIR=../ntnx-api-mcp-server node dist/index.js
 
-# Local HTTP only, without a service-to-service secret (always binds 127.0.0.1).
-# A non-loopback MCP_HTTP_HOST makes this exit.
-MCP_ALLOW_INSECURE_DEV=1 NUTANIX_MCP_DIR=../ntnx-api-mcp-server node dist/index.js
+# Alternative: local HTTP only, without a service-to-service secret (always
+# binds 127.0.0.1). A non-loopback MCP_HTTP_HOST makes this exit. The empty
+# assignment applies only to this process; the exported secret stays in the shell.
+MCP_ALLOW_INSECURE_DEV=1 CONDUIT_S2S_SECRET= \
+  NUTANIX_MCP_DIR=../ntnx-api-mcp-server node dist/index.js
 
 # 3. Smoke it (health is unauthenticated; /mcp needs X-Gateway-S2S — see above)
 curl -s localhost:8080/health
@@ -111,16 +117,17 @@ Or build the image (it bakes everything, including a stdio smoke test that fails
 
 ```bash
 docker build --platform linux/amd64 -t ghcr.io/wyre-ai/nutanix-mcp:dev .
+# Pass the exported secret. An empty value makes the container exit.
 docker run --rm \
   -e CONDUIT_S2S_SECRET="$CONDUIT_S2S_SECRET" \
   -p 127.0.0.1:8080:8080 \
   ghcr.io/wyre-ai/nutanix-mcp:dev
 ```
 
-Compose refuses to start when `CONDUIT_S2S_SECRET` is unset. The gateway service publishes `127.0.0.1:8080:8080` and does not inject `PC_HOST`, `PC_USERNAME`, `PC_PASSWORD`, `PC_API_KEY`, or `env_file`:
+Compose refuses to start when `CONDUIT_S2S_SECRET` is unset. The gateway service publishes `127.0.0.1:8080:8080` and does not inject `PC_HOST`, `PC_USERNAME`, `PC_PASSWORD`, `PC_API_KEY`, or `env_file`. Use the exported secret so a later signing request matches the container:
 
 ```bash
-CONDUIT_S2S_SECRET="$(openssl rand -hex 32)" docker compose up
+docker compose up
 ```
 
 ## Bumping the upstream pin

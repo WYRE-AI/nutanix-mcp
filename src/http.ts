@@ -73,6 +73,10 @@ export interface BridgeHttp {
   httpServer: HttpServer;
   /** Close the MCP handler (call before closing the HTTP server). */
   closeMcpHandler: () => Promise<void>;
+  /**
+   * Tenant child pool. The caller shuts it down: `closeMcpHandler()`, then
+   * `pool.shutdown()`, then `httpServer.close()`.
+   */
   pool: ChildPool;
 }
 
@@ -146,7 +150,15 @@ function resolvePort(env: NodeJS.ProcessEnv = process.env): number {
   return port;
 }
 
-export function createBridgeHttpServer(pool: ChildPool, s2sSecret = ""): BridgeHttp {
+/**
+ * Build the HTTP server without listening.
+ *
+ * `s2sSecret` is required. Pass the resolved `CONDUIT_S2S_SECRET`, or `""`
+ * only for the `MCP_ALLOW_INSECURE_DEV=1` bypass (skips `X-Gateway-S2S`).
+ * The caller listens, then shuts down `closeMcpHandler`, `pool`, and
+ * `httpServer` in that order. `startHttpTransport` is the production caller.
+ */
+export function createBridgeHttpServer(pool: ChildPool, s2sSecret: string): BridgeHttp {
   const mcpHandler: McpHttpHandler = createMcpHandler(makeMcpServerFactory(pool), {
     legacy: "stateless", // dual-era posture — never 'reject' on fleet servers
     onerror: (error) => {
