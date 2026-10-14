@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+- HTTP startup fails closed when `CONDUIT_S2S_SECRET` is empty or a known placeholder (CWE-306). `MCP_ALLOW_INSECURE_DEV=1` is the local bypass: it skips `X-Gateway-S2S` and listens on `127.0.0.1` only. A configured secret still honors `MCP_HTTP_HOST` (unset stays `0.0.0.0`). `/mcp` still returns 401 when the `X-Nutanix-Pc-*` credential headers are missing. Compose requires the secret and does not inject static Prism Central credentials.
+
 ### Added
 - Initial release: multitenant Streamable HTTP bridge over `nutanix/ntnx-api-mcp-server` (Nutanix's official Prism Central v4 API MCP server, technical preview, pinned at tag `v0.8`, Apache-2.0).
 - Because the upstream is stdio-only, the bridge holds an MCP client session over stdio per tenant child and re-serves it over HTTP: v2 SDK `createMcpHandler(factory, { legacy: 'stateless' })` serving both 2025-era `initialize`-handshake clients and modern 2026-07-28 envelope clients on `POST /mcp`, plus `GET /health`.

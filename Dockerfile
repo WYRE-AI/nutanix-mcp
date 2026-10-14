@@ -75,10 +75,14 @@ RUN npm run build && npm prune --omit=dev
 # ---- Stage 3: runtime image ----
 FROM python:3.12-slim AS runtime
 
+# 0.0.0.0 is the in-container bind. Startup still refuses to listen without a
+# real CONDUIT_S2S_SECRET. MCP_ALLOW_INSECURE_DEV=1 refuses this host and only
+# binds 127.0.0.1. Prism Central credentials arrive on X-Nutanix-Pc-* headers.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     NODE_ENV=production \
-    PORT=8080
+    PORT=8080 \
+    MCP_HTTP_HOST=0.0.0.0
 
 # Install Node.js 22 (no apt repo — use the official tarball)
 RUN apt-get update \

@@ -30,7 +30,8 @@ async function mcpJson(res: Response): Promise<any> {
 
 beforeAll(async () => {
   pool = new ChildPool({ upstreamBin: "/nonexistent/nutanix-mcp" });
-  bridge = createBridgeHttpServer(pool);
+  // Explicit insecure mode: this suite covers the credential gate, not S2S.
+  bridge = createBridgeHttpServer(pool, "");
   await new Promise<void>((resolve) => bridge.httpServer.listen(0, "127.0.0.1", resolve));
   const { port } = bridge.httpServer.address() as AddressInfo;
   base = `http://127.0.0.1:${port}`;

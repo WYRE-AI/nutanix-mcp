@@ -7,6 +7,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "tsc --noEmit --pretty false",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "test": "vitest run",
