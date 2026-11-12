@@ -86,11 +86,14 @@ ENV PYTHONUNBUFFERED=1 \
 
 # Install Node.js 22 (no apt repo — use the official tarball)
 RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
  && apt-get install -y --no-install-recommends ca-certificates curl xz-utils \
  && curl -fsSL https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-x64.tar.xz -o /tmp/node.tar.xz \
  && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 \
  && rm /tmp/node.tar.xz \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* \
+ && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
+ && python3 -m pip uninstall -y pip
 
 # Bring in the upstream + its venv + the baked artifacts
 COPY --from=upstream /opt/nutanix-mcp /opt/nutanix-mcp
