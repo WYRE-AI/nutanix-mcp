@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The HTTP transport no longer exits on a malformed request (WYREAI-741).** The request
+  target was parsed against the client-supplied `Host` header, and a value that does not parse
+  (or a target such as `//`) threw inside the request listener before authentication. The
+  target is now parsed against a fixed base, so `Host` is no longer consulted, and a target
+  that still cannot be parsed gets a `400` JSON response while the server keeps running.
+
 ### Security
 - HTTP startup fails closed when `CONDUIT_S2S_SECRET` is empty or a known placeholder (CWE-306). `MCP_ALLOW_INSECURE_DEV=1` is the local bypass: it skips `X-Gateway-S2S` and listens on `127.0.0.1` only. A configured secret still honors `MCP_HTTP_HOST` (unset stays `0.0.0.0`). `/mcp` still returns 401 when the `X-Nutanix-Pc-*` credential headers are missing. Compose requires the secret and does not inject static Prism Central credentials.
 
